@@ -1,0 +1,192 @@
+import os
+import argparse
+from typing import Tuple, Optional
+
+import torch
+from datasets import load_dataset
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, GenerationConfig
+from peft import PeftModel
+import evaluate
+
+
+def select_device_and_dtype() -> Tuple[str, torch.dtype]:
+    device = "cuda" if torch.cuda.is_available() else (
+        "mps" if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available() else "cpu"
+    )
+    dtype = torch.bfloat16 if device != "cpu" else torch.float32
+    return device, dtype
+
+
+def try_load_pt_model(
+    pt_model_id_or_path: str,
+    base_model_name: str,
+    device: str,
+    dtype: torch.dtype,
+) -> Tuple[AutoModelForSeq2SeqLM, AutoTokenizer]:
+    # First try as PEFT adapter over base model
+    try:
+        base = AutoModelForSeq2SeqLM.from_pretrained(base_model_name, torch_dtype=dtype)
+        model = PeftModel.from_pretrained(base, pt_model_id_or_path, torch_dtype=dtype, is_trainable=False)
+        model.to(device)
+        tokenizer = AutoTokenizer.from_pretrained(base_model_name)
+        return model, tokenizer
+    except Exception:
+        pass
+
+    # Fallback: load as a full model
+    model = AutoModelForSeq2SeqLM.from_pretrained(pt_model_id_or_path, torch_dtype=dtype)
+    model.to(device)
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(pt_model_id_or_path)
+    except Exception:
+        tokenizer = AutoTokenizer.from_pretrained(base_model_name)
+    return model, tokenizer
+
+
+def load_base_model(base_model_name: str, device: str, dtype: torch.dtype) -> Tuple[AutoModelForSeq2SeqLM, AutoTokenizer]:
+    model = AutoModelForSeq2SeqLM.from_pretrained(base_model_name, torch_dtype=dtype).to(device)
+    tokenizer = AutoTokenizer.from_pretrained(base_model_name)
+    return model, tokenizer
+
+
+def try_load_adapterhub_adapter(
+    adapterhub_id: str,
+    base_model_name: str,
+    device: str,
+    dtype: torch.dtype,
+) -> Tuple[AutoModelForSeq2SeqLM, AutoTokenizer]:
+    # Use standard Transformers model + adapters.init
+    try:
+        import adapters  # type: ignore
+    except Exception as e:
+        raise RuntimeError(
+            "Adapters support not found. Please install: pip install -U adapter-transformers"
+        ) from e
+
+    model = AutoModelForSeq2SeqLM.from_pretrained(base_model_name, torch_dtype=dtype).to(device)
+    adapters.init(model)
+
+    # Load and activate the specified adapter from HF Hub or local directory
+    load_source = "hf"
+    try:
+        if os.path.isdir(adapterhub_id):
+            load_source = "local"
+    except Exception:
+        pass
+    model.load_adapter(adapterhub_id, source=load_source, set_active=True)
+    tokenizer = AutoTokenizer.from_pretrained(base_model_name)
+    return model, tokenizer
+
+
+def prepare_dialogsum(tokenizer, max_source_length: int, max_target_length: int):
+    dataset = load_dataset("knkarthick/dialogsum")
+
+    def tokenize_function(example):
+        start_prompt = "summarize the following conversation."
+        end_prompt = "summary:"
+        prompt = [start_prompt + dialogue + end_prompt for dialogue in example["dialogue"]]
+        example["input_ids"] = tokenizer(
+            prompt,
+            padding="max_length",
+            max_length=max_source_length,
+            truncation=True,
+            return_tensors="pt",
+        ).input_ids
+        example["labels"] = tokenizer(
+            example["summary"],
+            padding="max_length",
+            max_length=max_target_length,
+            truncation=True,
+            return_tensors="pt",
+        ).input_ids
+        return example
+
+    tokenized = dataset.map(tokenize_function, batched=True)
+    tokenized = tokenized.remove_columns(["id", "topic", "dialogue", "summary"])
+    return dataset, tokenized
+
+
+def generate_summary(model, tokenizer, inputs_text: str, device: str, max_new_tokens: int = 128) -> str:
+    input_ids = tokenizer(inputs_text, return_tensors="pt").input_ids.to(device)
+    outputs = model.generate(input_ids=input_ids, generation_config=GenerationConfig(max_new_tokens=max_new_tokens))
+    return tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+
+def evaluate_rouge_on_dialogsum(
+    model, tokenizer, raw_dataset, device: str, sample_count: int, max_new_tokens: int
+):
+    dialogues = raw_dataset["test"][0:sample_count]["dialogue"]
+    references = raw_dataset["test"][0:sample_count]["summary"]
+
+    predictions = []
+    for d in dialogues:
+        prompt = f"summarize the following conversation. {d} summary:"
+        pred = generate_summary(model, tokenizer, prompt, device=device, max_new_tokens=max_new_tokens)
+        predictions.append(pred)
+
+    rouge = evaluate.load("rouge")
+    return rouge.compute(predictions=predictions, references=references, use_aggregator=True, use_stemmer=True)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Evaluate P-Tuning model vs base on DialogSum")
+    parser.add_argument("--pt_model_id", default="cackerman/t5-large_PROMPT_TUNING_SEQ_2_SEQ_LM", help="HF repo id or local dir of P-Tuning model/adapter")
+    parser.add_argument("--base_model", default="t5-large")
+    parser.add_argument("--adapterhub_id", type=str, default=None, help="HF path of AdapterHub adapter (e.g., org/name). When set, load via adapter-transformers instead of PEFT")
+    parser.add_argument("--eval_samples", type=int, default=10)
+    parser.add_argument("--max_source_length", type=int, default=256)
+    parser.add_argument("--max_target_length", type=int, default=128)
+    parser.add_argument("--max_new_tokens", type=int, default=128)
+    args = parser.parse_args()
+
+    device, dtype = select_device_and_dtype()
+    print(f"device: {device}, dtype: {dtype}")
+
+    # Load models
+    if args.adapterhub_id:
+        pt_model, pt_tokenizer = try_load_adapterhub_adapter(
+            adapterhub_id=args.adapterhub_id,
+            base_model_name=args.base_model,
+            device=device,
+            dtype=dtype,
+        )
+        variant_label = "ADAPTER MODEL"
+    else:
+        pt_model, pt_tokenizer = try_load_pt_model(
+            pt_model_id_or_path=args.pt_model_id,
+            base_model_name=args.base_model,
+            device=device,
+            dtype=dtype,
+        )
+        variant_label = "P-TUNING MODEL"
+    base_model, base_tokenizer = load_base_model(args.base_model, device=device, dtype=dtype)
+
+    # Prepare data once (use base tokenizer for shaping, content strings come from raw dataset)
+    raw_dataset, _ = prepare_dialogsum(base_tokenizer, args.max_source_length, args.max_target_length)
+
+    # Evaluate
+    base_scores = evaluate_rouge_on_dialogsum(
+        base_model, base_tokenizer, raw_dataset, device=device, sample_count=args.eval_samples, max_new_tokens=args.max_new_tokens
+    )
+    print("BASE MODEL ROUGE:")
+    print(base_scores)
+
+    pt_scores = evaluate_rouge_on_dialogsum(
+        pt_model, pt_tokenizer, raw_dataset, device=device, sample_count=args.eval_samples, max_new_tokens=args.max_new_tokens
+    )
+    print(f"{variant_label} ROUGE:")
+    print(pt_scores)
+
+    # Relative improvement over base
+    base_vals = list(base_scores.values())
+    pt_vals = list(pt_scores.values())
+    keys = list(pt_scores.keys())
+    print("over base model")
+    for k, dv in zip(keys, [p - b for p, b in zip(pt_vals, base_vals) ]):
+        print(f"{k}:{dv * 100:.2f}%")
+
+
+if __name__ == "__main__":
+    main()
+
+
