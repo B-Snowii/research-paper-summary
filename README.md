@@ -1,7 +1,5 @@
 ﻿[ En ](README.md) | [ 中文 ](README.zh-CN.md)
 
-[ En ](README.md) | [ 中文 ](README.zh-CN.md)
-
 # Academic Paper Summary Generator · Showcase
 This repository showcases a workflow and key implementation for generating professional around 25-word summaries for academic papers, built for a research institute.
 
