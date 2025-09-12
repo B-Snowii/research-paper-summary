@@ -1,8 +1,8 @@
 ﻿[ 英文 ](README.md) | [ 中文 ](README.zh-CN.md)
 
-# 学术论文专业摘要生成
+# 学术论文专业摘要生成 · 集合
 
-本仓库展示了我为研究机构打造的“学术论文专业摘要”工作流与关键实现。
+本仓库是一个**集合**，包含多种学术论文专业摘要生成的方法和实现，为研究机构打造。它包含四个不同版本（V1-V4），展示了从提示工程到高级MCP工作流的演进过程。
 
 - 任务：每周对大量论文产出约25词的学术摘要，用于 weekly Research alert。
 
@@ -60,7 +60,10 @@
 - 本项目采用 MIT 许可证。
 
 ## 相关仓库
-- V1：Prompt Engineering — https://github.com/B-Snowii/research-paper-summary-v1-prompt-engineering
-- V2：Pretraining — https://github.com/B-Snowii/research-paper-summary-v2-pretraining
-- V3：Fine‑tuning / PEFT — https://github.com/B-Snowii/research-paper-summary-v3-finetuning
-- MCP：流程实现 — https://github.com/B-Snowii/ai-academic-summary-mcp
+
+本集合包含以下独立仓库，每个代表不同的方法：
+
+- **V1：Prompt Engineering** — https://github.com/B-Snowii/research-paper-summary-v1-prompt-engineering
+- **V2：Pretraining** — https://github.com/B-Snowii/research-paper-summary-v2-pretraining
+- **V3：Fine‑tuning / PEFT** — https://github.com/B-Snowii/research-paper-summary-v3-finetuning
+- **V4：MCP 流程实现** — https://github.com/B-Snowii/ai-academic-summary-mcp
