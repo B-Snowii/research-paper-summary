@@ -49,6 +49,12 @@
 - 模型：Llama3、Deepseek‑R1
 - 相关开源框架：https://github.com/B-Snowii/ai-academic-summary-mcp
 
+### V5 · RLHF 去毒化
+- 框架：https://github.com/B-Snowii/ai-summary-detoxification-RLHF
+- 方法：基于人类反馈的强化学习进行内容去毒化
+- 模型：FLAN-T5-base配合PPO算法和Facebook RoBERTa毒性检测
+- 重点：确保AI生成的摘要安全无毒，同时保持质量
+
 ## 示例摘要
 
 - Example 1: This paper examines how belief vs taste drivers shape early-stage ESG collaboration, via randomized experiments with founders and VCs; methods: randomized assignment and survey-based measures.
@@ -67,3 +73,4 @@
 - **V2：Pretraining** — https://github.com/B-Snowii/research-paper-summary-v2-pretraining
 - **V3：Fine‑tuning / PEFT** — https://github.com/B-Snowii/research-paper-summary-v3-finetuning
 - **V4：MCP 流程实现** — https://github.com/B-Snowii/ai-academic-summary-mcp
+- **V5：RLHF 去毒化** — https://github.com/B-Snowii/ai-summary-detoxification-RLHF

@@ -49,6 +49,12 @@ This repository is a **collection** of multiple approaches and implementations f
 - Models: Llama3, Deepseek‑R1
 - Framework: https://github.com/B-Snowii/ai-academic-summary-mcp
 
+### V5 · RLHF Detoxification
+- Framework: https://github.com/B-Snowii/ai-summary-detoxification-RLHF
+- Approach: Reinforcement Learning from Human Feedback for content detoxification
+- Models: FLAN-T5-base with PPO algorithm and Facebook RoBERTa toxicity detection
+- Focus: Ensuring AI-generated summaries are safe and non-toxic while maintaining quality
+
 ## Sample Summaries
 
 - Example 1: This paper examines how belief vs taste drivers shape early-stage ESG collaboration, via randomized experiments with founders and VCs; methods: randomized assignment and survey-based measures.
@@ -67,3 +73,4 @@ This collection includes the following individual repositories, each representin
 - **V2: Pretraining** — https://github.com/B-Snowii/research-paper-summary-v2-pretraining  
 - **V3: Fine‑tuning / PEFT** — https://github.com/B-Snowii/research-paper-summary-v3-finetuning
 - **V4: MCP pipeline** — https://github.com/B-Snowii/ai-academic-summary-mcp
+- **V5: RLHF Detoxification** — https://github.com/B-Snowii/ai-summary-detoxification-RLHF
