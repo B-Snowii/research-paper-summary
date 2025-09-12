@@ -1,8 +1,8 @@
 ﻿[ En ](README.md) | [ 中文 ](README.zh-CN.md)
 
-# Academic Paper Summary Generator · Showcase
+# Academic Paper Summary Generator · Collection
 
-This repository showcases a workflow and key implementation for generating professional around 25-word summaries for academic papers, built for a research institute.
+This repository is a **collection** of multiple approaches and implementations for generating professional around 25-word summaries for academic papers, built for a research institute. It contains four different versions (V1-V4) showcasing the evolution from prompt engineering to advanced MCP workflows.
 
 - Task: Produce around 25-word academic summaries for many papers weekly, used in weekly Research alerts.
 
@@ -60,7 +60,10 @@ This repository showcases a workflow and key implementation for generating profe
 - MIT License
 
 ## Related repositories
-- V1: Prompt Engineering — https://github.com/B-Snowii/research-paper-summary-v1-prompt-engineering
-- V2: Pretraining — https://github.com/B-Snowii/research-paper-summary-v2-pretraining
-- V3: Fine‑tuning / PEFT — https://github.com/B-Snowii/research-paper-summary-v3-finetuning
-- MCP pipeline — https://github.com/B-Snowii/ai-academic-summary-mcp
+
+This collection includes the following individual repositories, each representing a different approach:
+
+- **V1: Prompt Engineering** — https://github.com/B-Snowii/research-paper-summary-v1-prompt-engineering
+- **V2: Pretraining** — https://github.com/B-Snowii/research-paper-summary-v2-pretraining  
+- **V3: Fine‑tuning / PEFT** — https://github.com/B-Snowii/research-paper-summary-v3-finetuning
+- **V4: MCP pipeline** — https://github.com/B-Snowii/ai-academic-summary-mcp
